@@ -1,12 +1,12 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useRef, useEffect } from 'react'
 import Toast from 'react-native-toast-message'
-import { DailyVoiceClient } from 'react-native-realtime-ai-daily'
-import { TransportState, VoiceMessage } from 'realtime-ai'
+import { RNDailyTransport } from 'react-native-realtime-ai-daily'
+import { RTVIClient, TransportState, RTVIMessage, Participant } from 'realtime-ai'
 import { MediaStreamTrack } from '@daily-co/react-native-webrtc'
 import { SettingsManager } from '../settings/SettingsManager';
 
 interface VoiceClientContextProps {
-  voiceClient: DailyVoiceClient | null
+  voiceClient: RTVIClient | null
   inCall: boolean
   currentState: string
   botReady: boolean
@@ -30,9 +30,9 @@ interface VoiceClientProviderProps {
 }
 
 export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ children }) => {
-  const [voiceClient, setVoiceClient] = useState<DailyVoiceClient | null>(null)
+  const [voiceClient, setVoiceClient] = useState<RTVIClient | null>(null)
   const [inCall, setInCall] = useState<boolean>(false)
-  const [currentState, setCurrentState] = useState<TransportState>("idle")
+  const [currentState, setCurrentState] = useState<TransportState>("disconnected")
   const [botReady, setBotReady] = useState<boolean>(false)
   const [isMicEnabled, setIsMicEnabled] = useState<boolean>(false)
   const [isCamEnabled, setIsCamEnabled] = useState<boolean>(false)
@@ -44,51 +44,57 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
   const botSpeakingRef = useRef(false)
   let meetingTimer: NodeJS.Timeout | null
 
-  const createVoiceClient = useCallback((apiKey: string, url: string): DailyVoiceClient => {
-    return new DailyVoiceClient({
-      baseUrl: url,
+  const createVoiceClient = useCallback((apiKey: string, url: string): RTVIClient => {
+    return new RTVIClient({
+      transport: new RNDailyTransport(),
+      params: {
+        baseUrl: url,
+        config: [
+          {
+            service: "tts",
+            options: [
+              { name: "voice", value: "79a125e8-cd45-4c13-8a67-188112f4dd22" },
+            ],
+          },
+          {
+            service: "llm",
+            options: [
+              { name: "model", value: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo" },
+              {
+                name: "initial_messages",
+                value: [
+                  {
+                    role: "system",
+                    content:
+                      "You are a assistant called ExampleBot. You can ask me anything. Keep responses brief and legible. Your responses will converted to audio. Please do not include any special characters in your response other than '!' or '?'. Start by briefly introducing yourself.",
+                  },
+                ],
+              },
+              { name: "run_on_config", value: true },
+            ],
+          },
+        ],
+        // Note: In a production environment, it is recommended to avoid calling Daily's API endpoint directly.
+        // Instead, you should route requests through your own server to handle authentication, validation,
+        // and any other necessary logic. Therefore, the baseUrl should be set to the URL of your own server.
+        headers: new Headers({
+          "Authorization": `Bearer ${apiKey}`
+        }),
+        requestData: {
+          "bot_profile": "voice_2024_08",
+          "max_duration": 680,
+          services: {
+            llm: "together",
+            tts: "cartesia",
+          },
+        },
+        endpoints: {
+          connect: "/start",
+          action: "/action"
+        }
+      },
       enableMic: true,
-      services: {
-        llm: "together",
-        tts: "cartesia",
-      },
-      config: [
-        {
-          service: "tts",
-          options: [
-            { name: "voice", value: "79a125e8-cd45-4c13-8a67-188112f4dd22" },
-          ],
-        },
-        {
-          service: "llm",
-          options: [
-            { name: "model", value: "meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo" },
-            {
-              name: "initial_messages",
-              value: [
-                {
-                  role: "system",
-                  content:
-                    "You are a assistant called ExampleBot. You can ask me anything. Keep responses brief and legible. Your responses will converted to audio. Please do not include any special characters in your response other than '!' or '?'. Start by briefly introducing yourself.",
-                },
-              ],
-            },
-            { name: "run_on_config", value: true },
-          ],
-        },
-      ],
-      // Note: In a production environment, it is recommended to avoid calling Daily's API endpoint directly.
-      // Instead, you should route requests through your own server to handle authentication, validation,
-      // and any other necessary logic. Therefore, the baseUrl should be set to the URL of your own server.
-      customHeaders: {
-        "Authorization": `Bearer ${apiKey}`
-      },
-      customBodyParams: {
-        "bot_profile": "voice_2024_08",
-        "max_duration": 680
-      },
-      timeout: 15 * 1000,
-      enableCam: false,
+      enableCam: false
     })
   }, [])
 
@@ -101,15 +107,15 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
     })
   }, [])
 
-  const setupListeners = useCallback((voiceClient: DailyVoiceClient): void => {
+  const setupListeners = useCallback((voiceClient: RTVIClient): void => {
     const inCallStates = new Set(["authenticating", "connecting", "connected", "ready"])
 
     voiceClient
-      .on("transportStateChanged", (state) => {
+      .on("transportStateChanged", (state: TransportState) => {
         setCurrentState(voiceClient.state)
         setInCall(inCallStates.has(state))
       })
-      .on("error", (error: VoiceMessage) => {
+      .on("error", (error: RTVIMessage) => {
         handleError(error)
       })
       .on("botReady", () => {
@@ -125,10 +131,10 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
         setIsMicEnabled(false)
         setIsCamEnabled(false)
       })
-      .on("localAudioLevel", (level) => {
+      .on("localAudioLevel", (level: number) => {
           setLocalAudioLevel(level)
       })
-      .on("remoteAudioLevel", (level) => {
+      .on("remoteAudioLevel", (level: number) => {
         if (botSpeakingRef.current) {
           setRemoteAudioLevel(level)
         }
@@ -150,8 +156,8 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
         setIsMicEnabled(voiceClient.isMicEnabled)
         setIsCamEnabled(voiceClient.isCamEnabled)
       })
-      .on("trackStarted", (track, participant) => {
-        if (participant?.local && track.kind === 'video'){
+      .on("trackStarted", (track: MediaStreamTrack, p?: Participant) => {
+        if (p?.local && track.kind === 'video'){
           setVideoTrack(track)
         }
       })
