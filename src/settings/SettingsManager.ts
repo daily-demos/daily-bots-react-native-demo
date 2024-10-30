@@ -11,7 +11,7 @@ export interface SettingsManager {
 const defaultSettings: SettingsManager = {
   enableCam: false,
   enableMic: true,
-  backendURL: "https://api.daily.co/v1/bots/start",
+  backendURL: "https://api.daily.co/v1/bots",
   dailyApiKey: ""
 };
 
