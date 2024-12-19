@@ -6,7 +6,7 @@ import { Icons } from '../theme/Assets';
 import Colors from '../theme/Colors';
 
 import { useVoiceClient } from '../context/VoiceClientContext';
-import { VoiceClientVideoView } from 'react-native-realtime-ai-daily';
+import { VoiceClientVideoView } from '@pipecat-ai/react-native-daily-transport';
 
 interface CameraButtonViewProps {
   style?: ViewStyle; // Optional additional styles for the button container
