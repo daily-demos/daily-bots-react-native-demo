@@ -51,7 +51,7 @@ const PreJoinView: React.FC = () => {
   const { start } = useVoiceClient();
 
   const [backendURL, setBackendURL] = useState<string>('')
-  const [dailyApiKey, setDailyApiKey] = useState(process.env.EXPO_PUBLIC_DAILY_API_KEY || '');
+  const [dailyApiKey, setDailyApiKey] = useState<string>('');
 
   useEffect(() => {
     const loadSettings = async () => {
