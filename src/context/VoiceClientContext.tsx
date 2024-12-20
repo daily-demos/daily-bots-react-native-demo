@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useCallback, useMemo, useRef, useEffect } from 'react'
 import Toast from 'react-native-toast-message'
-import { RNDailyTransport } from 'react-native-realtime-ai-daily'
-import { RTVIClient, TransportState, RTVIMessage, Participant } from 'realtime-ai'
+import { RNDailyTransport } from '@pipecat-ai/react-native-daily-transport'
+import { RTVIClient, TransportState, RTVIMessage, Participant } from '@pipecat-ai/client-js'
 import { MediaStreamTrack } from '@daily-co/react-native-webrtc'
 import { SettingsManager } from '../settings/SettingsManager';
 
@@ -168,7 +168,7 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
     setVoiceClient(client)
     setupListeners(client)
     try {
-      await client.start()
+      await client.connect()
       // updating the preferences
       const newSettings = await SettingsManager.getSettings();
       newSettings.dailyApiKey = apiKey
