@@ -81,7 +81,7 @@ export const VoiceClientProvider: React.FC<VoiceClientProviderProps> = ({ childr
           "Authorization": `Bearer ${apiKey}`
         }),
         requestData: {
-          "bot_profile": "voice_2024_08",
+          "bot_profile": "voice_2024_10",
           "max_duration": 680,
           services: {
             llm: "together",
