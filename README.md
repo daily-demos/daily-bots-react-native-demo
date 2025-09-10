@@ -1,5 +1,5 @@
 > [!WARNING]
-> **DAILY BOTS AND ALL ASSOCIATED DEMOS HAVE BEEN SUNSETTED AND REPLACED BY [PIPECAT CLOUD](https://www.daily.co/products/pipecat-cloud/).
+> **DAILY BOTS AND ALL ASSOCIATED DEMOS HAVE BEEN SUNSETTED AND REPLACED BY [PIPECAT CLOUD](https://www.daily.co/products/pipecat-cloud/).**
 
 # A voice to voice app for React Native (Expo)
 
